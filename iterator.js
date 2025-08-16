@@ -1,5 +1,6 @@
 var iteratorObj = {
   value: [11, 22, 44, 66, 77],
+
   [Symbol.iterator]() {
     let _currentIndex = 0;
     return {
