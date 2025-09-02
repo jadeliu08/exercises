@@ -63,6 +63,10 @@ class MyPromise {
 		return promise2;
 	}
 
+	catch(onRejected) {
+		return this.then(null, onRejected);
+	}
+
 	static resolve = function (value) {
 		return new MyPromise((resolve) => {
 			resolve(value);
@@ -88,21 +92,24 @@ class MyPromise {
 	}
 }
 
-function resolvePromise(promise2, x, resolve, reject) {
-	if (x === promise2) {
-		return reject(new TypeError('Chaining cycle detached for promise'));
-	}
-	// promise2吸收x的状态
-	if (x instanceof MyPromise) {
-		// promise2 = x;
-	}
-	if (x !== null && x.then) {
-		// x.then(resolve, reject);
-	}
-	if (typeof x === 'function') {
-		// promise2 = x();
+function isObject(val) {
+	return val !== null && typeof val === 'object';
+}
+
+function isFunction(val) {
+	return typeof val === 'function';
+}
+
+function isThenable(val) {
+	return (isObject(val) || isFunction(val)) && isFunction(val.then);
+}
+
+function resolvePromise(promise, x, resolve, reject) {
+	if (isThenable(x)) {
+		if (x === promise) {
+			return reject(new TypeError('Chaining cycle detached for promise'));
+		}
+		x.then(resolve, resolve);
 	}
 	resolve(x);
 }
-
-
