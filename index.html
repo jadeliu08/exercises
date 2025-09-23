@@ -3,8 +3,52 @@
   <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+      /** {*/
+      /*  padding: 0;*/
+      /*}*/
+      .container {
+        width: 50%;
+        height: 300px;
+        background: #ee6a5f;
+        margin: 20px;
+      }
+      
+      .inner {
+        height: 100%;
+      }
+      
+      .center {
+        width: inherit;
+        height: 80%;
+        background: #61c354;
+        margin: inherit;
+      }
+    </style>
   </head>
   <body>
-    <script src="idleCallback.js"></script>
+<!--    <script src="./promise.js"></script>-->
+<!--    <script>-->
+<!--	    var p1 = new MyPromise((resolve, reject) => {-->
+<!--		    setTimeout(() => {-->
+<!--			    reject(2222);-->
+<!--		    }, 4000);-->
+<!--	    });-->
+<!--	    p1.then((data) => {-->
+<!--		    console.log('1 then resolve', data);-->
+<!--	    }, (reason) => {-->
+<!--		    console.log('1 then reject', reason);-->
+<!--      });-->
+<!--	    p1.then((data) => {-->
+<!--		    console.log('2 then resolve', data);-->
+<!--	    }, (reason) => {-->
+<!--		    console.log('2 then reject', reason);-->
+<!--	    });-->
+<!--    </script>-->
+    <div class="container">
+      <div class="inner">
+        <div class="center"></div>
+      </div>
+    </div>
   </body>
 </html>
