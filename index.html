@@ -51,4 +51,156 @@
       </div>
     </div>
   </body>
+  <script src="./gaotu.js">
+  </script>
+  <script>
+	  /**
+	   * 状态常量定义
+	   */
+	  const PENDING = 'pending';
+	  const FULFILLED = 'fulfilled';
+	  const REJECTED = 'rejected';
+
+	  /**
+	   * 核心辅助函数：resolvePromise
+	   * 职责：处理 then 方法回调的返回值 x，并决定 promise2 的状态。
+	   * 遵循 Promise/A+ 规范 2.3 节。
+	   *
+	   * @param {MyPromise} promise2 then 函数需要返回的新的 Promise 对象
+	   * @param {*} x onFulfilled / onRejected 执行后得到的返回值
+	   * @param {Function} resolve promise2 的 resolve 方法
+	   * @param {Function} reject promise2 的 reject 方法
+	   */
+	  function resolvePromise(promise2, x, resolve, reject) {
+		  // 2.3.1 避免循环引用：如果 promise2 和 x 是同一个对象，则用 TypeError 拒绝
+		  if (promise2 === x) {
+			  return reject(new TypeError('Chaining cycle detected for promise #<MyPromise>'));
+		  }
+
+		  let called = false; // 状态锁定标志：确保 resolve/reject 只被调用一次
+
+		  // 2.3.3 如果 x 是一个 thenable (对象或函数)
+		  if (x !== null && (typeof x === 'object' || typeof x === 'function')) {
+			  try {
+				  // 尝试获取 x 的 then 方法
+				  const then = x.then;
+
+				  // 2.3.3.3 如果 then 是一个函数，则认为 x 是一个 thenable
+				  if (typeof then === 'function') {
+					  // 调用 x.then()，采纳 x 的状态
+					  then.call(x,
+						  y => { // resolvePromise
+							  if (called) return;
+							  called = true;
+							  // 递归处理：解析 thenable resolve 的值
+							  resolvePromise(promise2, y, resolve, reject);
+						  },
+						  r => { // rejectPromise
+							  if (called) return;
+							  called = true;
+							  // x reject 了，则 promise2 也 reject
+							  reject(r);
+						  }
+					  );
+				  } else {
+					  // 2.3.3.4 then 不是函数，x 是一个普通对象
+					  resolve(x);
+				  }
+			  } catch (e) {
+				  // 2.3.3.2 捕获取 x.then 或调用 then 时抛出的错误
+				  if (called) return;
+				  called = true;
+				  reject(e);
+			  }
+		  } else {
+			  // 2.3.4 x 是普通值
+			  resolve(x);
+		  }
+	  }
+
+	  /**
+	   * 简化版 MyPromise 实现
+	   */
+	  class MyPromise {
+		  constructor(executor) {
+			  this.state = PENDING;
+			  this.value = undefined;
+			  this.reason = undefined;
+			  this.onFulfilledCallbacks = [];
+			  this.onRejectedCallbacks = [];
+
+			  // 成功状态转换函数
+			  const resolve = (value) => {
+				  if (this.state === PENDING) {
+					  this.state = FULFILLED;
+					  this.value = value;
+					  // 异步执行回调 (模拟微任务)
+					  this.onFulfilledCallbacks.forEach(fn => setTimeout(fn, 0));
+				  }
+			  };
+
+			  // 失败状态转换函数
+			  const reject = (reason) => {
+				  if (this.state === PENDING) {
+					  this.state = REJECTED;
+					  this.reason = reason;
+					  // 异步执行回调
+					  this.onRejectedCallbacks.forEach(fn => setTimeout(fn, 0));
+				  }
+			  };
+
+			  try {
+				  executor(resolve, reject);
+			  } catch (e) {
+				  reject(e);
+			  }
+		  }
+
+		  /**
+		   * Promise.prototype.then() 实现
+		   */
+		  then(onFulfilled, onRejected) {
+			  // 处理值穿透
+			  onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : value => value;
+			  onRejected = typeof onRejected === 'function' ? onRejected : reason => { throw reason };
+
+			  // 返回一个新的 Promise (promise2)
+			  const promise2 = new MyPromise((resolve, reject) => {
+
+				  // 成功状态执行逻辑
+				  const handleFulfilled = () => {
+					  try {
+						  const x = onFulfilled(this.value);
+						  // 核心：使用外部定义的 resolvePromise 处理返回值 x
+						  resolvePromise(promise2, x, resolve, reject);
+					  } catch (e) {
+						  reject(e);
+					  }
+				  };
+
+				  // 失败状态执行逻辑
+				  const handleRejected = () => {
+					  try {
+						  const x = onRejected(this.reason);
+						  // 核心：使用外部定义的 resolvePromise 处理返回值 x
+						  resolvePromise(promise2, x, resolve, reject);
+					  } catch (e) {
+						  reject(e);
+					  }
+				  };
+
+				  if (this.state === FULFILLED) {
+					  setTimeout(handleFulfilled, 0);
+				  } else if (this.state === REJECTED) {
+					  setTimeout(handleRejected, 0);
+				  } else if (this.state === PENDING) {
+					  this.onFulfilledCallbacks.push(handleFulfilled);
+					  this.onRejectedCallbacks.push(handleRejected);
+				  }
+			  });
+
+			  return promise2;
+		  }
+	  }
+  </script>
 </html>
